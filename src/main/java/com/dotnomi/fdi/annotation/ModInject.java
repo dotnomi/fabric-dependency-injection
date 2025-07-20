@@ -1,6 +1,6 @@
-package com.dotnomi.ddi.annotation;
+package com.dotnomi.fdi.annotation;
 
-import com.dotnomi.ddi.ModInjector;
+import com.dotnomi.fdi.ModInjector;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

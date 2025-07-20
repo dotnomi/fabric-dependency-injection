@@ -1,8 +1,8 @@
-package com.dotnomi.ddi;
+package com.dotnomi.fdi;
 
-import com.dotnomi.ddi.annotation.ModInject;
-import com.dotnomi.ddi.annotation.ModMain;
-import com.dotnomi.ddi.annotation.ModScoped;
+import com.dotnomi.fdi.annotation.ModInject;
+import com.dotnomi.fdi.annotation.ModMain;
+import com.dotnomi.fdi.annotation.ModScoped;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

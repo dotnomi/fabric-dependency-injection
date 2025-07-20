@@ -1,17 +1,23 @@
 plugins {
-    id 'java'
+    id "java"
 }
 
-group = 'com.dotnomi'
-version = '1.0-SNAPSHOT'
+group = "com.dotnomi"
+version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    compileOnly("org.slf4j:slf4j-api:2.0.13")
+    annotationProcessor("com.google.auto.service:auto-service:1.1.1")
+    compileOnly("com.google.auto.service:auto-service:1.1.1")
+    implementation ("org.reflections:reflections:0.10.2")
+
+
+    testImplementation platform("org.junit:junit-bom:5.10.0")
+    testImplementation("org.junit.jupiter:junit-jupiter")
 }
 
 test {

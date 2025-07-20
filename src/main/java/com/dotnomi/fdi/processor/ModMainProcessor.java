@@ -1,6 +1,6 @@
-package com.dotnomi.ddi.processor;
+package com.dotnomi.fdi.processor;
 
-import com.dotnomi.ddi.annotation.ModMain;
+import com.dotnomi.fdi.annotation.ModMain;
 import com.google.auto.service.AutoService;
 
 import javax.annotation.processing.AbstractProcessor;
