@@ -46,10 +46,10 @@ jobs:
 
       - name: Extract version
         run: |
-          PROJECT_NAME=$(./gradlew printProjectName -q | tr -d '\r')
-          PROJECT_VERSION=$(./gradlew printProjectVersion -q | tr -d '\r')
-          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
-          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          PROJECT_NAME=$(./gradlew printProjectName -q | tr -d '\r' | xargs)
+          PROJECT_VERSION=$(./gradlew printProjectVersion -q | tr -d '\r' | xargs)
+          echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=${PROJECT_VERSION}" >> $GITHUB_ENV
           echo "Project Name: $PROJECT_NAME"
           echo "Project Version: $PROJECT_VERSION"
 
@@ -66,13 +66,18 @@ jobs:
               WARNING="IMPORTANT: This is a beta build. There might be bugs."
           fi
           
-          FINAL_CHANGELOG="${CHANGELOG_CONTENT_RAW}
+          # Combine raw changelog and warning, ensuring the warning is on its own line if it exists.
+          FINAL_CHANGELOG="${CHANGELOG_CONTENT_RAW}"
+          if [[ -n "$WARNING" ]]; then
+            FINAL_CHANGELOG="${FINAL_CHANGELOG}\n\n${WARNING}"
+          fi
 
-          ${WARNING}"
+          # Generate a random, unique delimiter
+          DELIMITER="EOF_CHANGELOG_$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20)"
           
-          DELIMITER="EOF_CHANGELOG_$RANDOM"
+          # Write the multi-line content using the generated delimiter
           echo "CHANGELOG_CONTENT<<$DELIMITER" >> $GITHUB_ENV
-          echo "$FINAL_CHANGELOG" >> $GITHUB_ENV
+          echo -e "$FINAL_CHANGELOG" >> $GITHUB_ENV # Use -e for echo to interpret newlines
           echo "$DELIMITER" >> $GITHUB_ENV
           echo "Changelog content prepared."
 
