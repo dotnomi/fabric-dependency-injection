@@ -13,6 +13,7 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -24,33 +25,47 @@ import java.util.Set;
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public final class ModMainProcessor extends AbstractProcessor {
-  private boolean hasRun = false;
+  private static final Set<String> foundModMainClasses = new HashSet<>();
+  private static boolean errorReportedInThisCompilation = false;
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-    if (hasRun) {
-      return true;
+    if (roundEnv.processingOver() || errorReportedInThisCompilation) {
+      return false;
     }
 
-    Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(ModMain.class);
+    Set<? extends Element> currentRoundAnnotatedElements = roundEnv.getElementsAnnotatedWith(ModMain.class);
+    Messager messager = this.processingEnv.getMessager();
 
-    if (annotatedElements.size() > 1) {
-      Messager messager = this.processingEnv.getMessager();
+    for (Element annotatedElement : currentRoundAnnotatedElements) {
+      String className = ((TypeElement) annotatedElement).getQualifiedName().toString();
+      if (foundModMainClasses.contains(className)) {
+        continue;
+      }
 
-      messager.printMessage(
-        Diagnostic.Kind.ERROR,
-        "Multiple @ModMain annotated classes found. Only one is permitted."
-      );
+      foundModMainClasses.add(className);
 
-      for (Element annotatedElement : annotatedElements) {
+      if (foundModMainClasses.size() > 1) {
+        if (!errorReportedInThisCompilation) {
+          messager.printMessage(
+            Diagnostic.Kind.ERROR,
+            "Multiple @ModMain annotated classes found. Only one is permitted in the entire project."
+          );
+          errorReportedInThisCompilation = true;
+        }
+
         messager.printMessage(
           Diagnostic.Kind.ERROR,
-          "Found @ModMain annotated class: " + annotatedElement.toString()
+          "Found @ModMain annotated class: " + annotatedElement
         );
       }
     }
 
-    hasRun = true;
-    return true;
+    if (roundEnv.processingOver()) {
+      foundModMainClasses.clear();
+      errorReportedInThisCompilation = false;
+    }
+
+    return false;
   }
 }
