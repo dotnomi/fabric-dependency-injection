@@ -11,15 +11,15 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, windows]
+    runs-on: [ ubuntu-latest ]
 
     defaults:
       run:
-        shell: pwsh
+        shell: bash
 
     strategy:
       matrix:
-        java: [21]
+        java: [ 21 ]
 
     steps:
       - name: Checkout code

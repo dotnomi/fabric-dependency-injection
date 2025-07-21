@@ -5,18 +5,18 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, windows]
+    runs-on: [ ubuntu-latest ]
 
     defaults:
       run:
-        shell: pwsh
+        shell: bash
 
     permissions:
       contents: write
 
     strategy:
       matrix:
-        java: [21]
+        java: [ 21 ]
 
     steps:
       - name: Checkout code
@@ -43,34 +43,35 @@ jobs:
 
       - name: Extract version
         run: |
-          $PROJECT_NAME = (./gradlew printProjectName -q).Trim()
-          $PROJECT_VERSION = (./gradlew printProjectVersion -q).Trim()
-          echo "PROJECT_NAME=$PROJECT_NAME" >> $env:GITHUB_ENV
-          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $env:GITHUB_ENV
-          Write-Host "Project Name: $PROJECT_NAME"
-          Write-Host "Project Version: $PROJECT_VERSION"
+          PROJECT_NAME=$(./gradlew printProjectName -q | tr -d '\r')
+          PROJECT_VERSION=$(./gradlew printProjectVersion -q | tr -d '\r')
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          echo "Project Name: $PROJECT_NAME"
+          echo "Project Version: $PROJECT_VERSION"
 
       - name: Build with Gradle
         run: ./gradlew shadowJar
 
       - name: Read changelog
         run: |
-          $CHANGELOG_CONTENT_RAW = Get-Content -Path ".github/changelogs/changelog.md" -Raw
-          $WARNING = ""
-          if ($env:PROJECT_VERSION -like "*a") {
-              $WARNING = "IMPORTANT: This is an alpha build. There might be bugs."
-          } elseif ($env:PROJECT_VERSION -like "*b") {
-              $WARNING = "IMPORTANT: This is a beta build. There might be bugs."
-          }
+          CHANGELOG_CONTENT_RAW=$(cat .github/changelogs/changelog.md)
+          WARNING=""
+          if [[ "$PROJECT_VERSION" == *a ]]; then
+              WARNING="IMPORTANT: This is an alpha build. There might be bugs."
+          elif [[ "$PROJECT_VERSION" == *b ]]; then
+              WARNING="IMPORTANT: This is a beta build. There might be bugs."
+          fi
           
-          $FINAL_CHANGELOG = "$CHANGELOG_CONTENT_RAW`n`n$WARNING"
+          FINAL_CHANGELOG="${CHANGELOG_CONTENT_RAW}
+
+          ${WARNING}"
           
-          # Multiline Environment Variable für GITHUB_ENV
-          $DELIMITER = "EOF_CHANGELOG_$(Get-Random)"
-          echo "CHANGELOG_CONTENT<<$DELIMITER" >> $env:GITHUB_ENV
-          echo "$FINAL_CHANGELOG" >> $env:GITHUB_ENV
-          echo "$DELIMITER" >> $env:GITHUB_ENV
-          Write-Host "Changelog content prepared."
+          DELIMITER="EOF_CHANGELOG_$RANDOM"
+          echo "CHANGELOG_CONTENT<<$DELIMITER" >> $GITHUB_ENV
+          echo "$FINAL_CHANGELOG" >> $GITHUB_ENV
+          echo "$DELIMITER" >> $GITHUB_ENV
+          echo "Changelog content prepared."
 
       - name: Check if Release Exists
         if: ${{ matrix.java == '21' }}
@@ -78,37 +79,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $headers = @{
-              "Authorization" = "token $env:GITHUB_TOKEN"
-              "Accept" = "application/vnd.github.v3+json"
-          }
-          $tagName = $env:PROJECT_VERSION
-          $repo = $env:GITHUB_REPOSITORY
+          TAG_NAME=$PROJECT_VERSION
+          REPO=$GITHUB_REPOSITORY
           
-          Write-Host "Checking for existing release with tag: $tagName"
-          $releaseInfo = try {
-              Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tagName" -Headers $headers -Method Get -ErrorAction Stop
-          } catch {
-              if ($_.Exception.Response -and $_.Exception.Response.StatusCode -eq 404) {
-                  Write-Host "Release with tag $tagName not found. No need to delete."
-                  $null
-              } else {
-                  Write-Error "Error checking release: $($_.Exception.Message)"
-                  # exit 1
-              }
-          }
+          echo "Checking for existing release with tag: $TAG_NAME"
+          RELEASE_INFO=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$REPO/releases/tags/$TAG_NAME" || true)
           
-          if ($releaseInfo -and $releaseInfo.tag_name -eq $tagName) {
-              Write-Host "Release $tagName already exists (ID: $($releaseInfo.id)). Deleting..."
-              $releaseId = $releaseInfo.id
-              try {
-                  Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/$releaseId" -Headers $headers -Method Delete -ErrorAction Stop
-                  Write-Host "Release $tagName deleted successfully."
-              } catch {
-                  Write-Error "Error deleting release: $($_.Exception.Message)"
-                  # exit 1
-              }
-          }
+          if [[ $(echo "$RELEASE_INFO" | jq -r '.tag_name // empty') == "$TAG_NAME" ]]; then
+              RELEASE_ID=$(echo "$RELEASE_INFO" | jq -r '.id')
+              echo "Release $TAG_NAME already exists (ID: $RELEASE_ID). Deleting..."
+          
+              curl -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+                "https://api.github.com/repos/$REPO/releases/$RELEASE_ID"
+          
+              echo "Release $TAG_NAME deleted successfully."
+          else
+              echo "Release with tag $TAG_NAME not found. No need to delete."
+          fi
 
       - name: Create Release
         if: ${{ matrix.java == '21' }}
