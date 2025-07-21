@@ -1,36 +1,31 @@
 plugins {
-    id "java"
-    id "maven-publish"
+    id("java-library")
+    id("maven-publish")
+    id("co.uzzu.dotenv.gradle") version("$dotenv_version")
+    id("com.github.johnrengelman.shadow") version("$shadow_version")
 }
 
-group = "com.dotnomi"
-version = "0.0.1"
+group = project.library_group
+version = project.library_version
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compileOnly("org.slf4j:slf4j-api:2.0.13")
-    annotationProcessor("com.google.auto.service:auto-service:1.1.1")
-    compileOnly("com.google.auto.service:auto-service:1.1.1")
-    implementation ("org.reflections:reflections:0.10.2")
+    compileOnly("org.slf4j:slf4j-api:$slf4j_version")
+    annotationProcessor("com.google.auto.service:auto-service:$google_auto_service_version")
+    compileOnly("com.google.auto.service:auto-service:$google_auto_service_version")
+    implementation ("org.reflections:reflections:$reflections_version")
 
-
-    testImplementation platform("org.junit:junit-bom:5.10.0")
+    testImplementation platform("org.junit:junit-bom:$junit_version")
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
 
-test {
-    useJUnitPlatform()
-}
+test { useJUnitPlatform() }
 
 def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
-    // ensure that the encoding is set to UTF-8, no matter what the system default is
-    // this fixes some edge cases with special characters not displaying correctly
-    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-    // If Javadoc is generated, this must be specified in that task too.
     it.options.encoding = "UTF-8"
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         it.options.release.set(targetJavaVersion)
@@ -42,8 +37,31 @@ java {
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
-    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-    // if it is present.
-    // If you remove this line, sources will not be generated.
     withSourcesJar()
 }
+
+shadowJar { mergeServiceFiles() }
+
+publishing {
+    publications {
+        register("mavenJava", MavenPublication) {
+            groupId = project.library_group
+            artifactId = "fabric-dependency-injection"
+            version = project.library_version
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = "fabric-dependency-injection"
+            url = "https://maven.pkg.github.com/dotnomi/fabric-dependency-injection"
+            credentials {
+                username = env.fetch("GITHUB_ACTOR", "")
+                password = env.fetch("GITHUB_TOKEN", "")
+            }
+        }
+    }
+}
+
+tasks.register("printProjectName") { doLast { println project.name } }
+tasks.register("printProjectVersion") { doLast { println project.version } }

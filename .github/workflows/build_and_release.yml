@@ -1,0 +1,139 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: [self-hosted, windows]
+
+    defaults:
+      run:
+        shell: pwsh
+
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        java: [21]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.7
+
+      - name: Validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup jdk ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Extract version
+        run: |
+          $PROJECT_NAME = (./gradlew printProjectName -q).Trim()
+          $PROJECT_VERSION = (./gradlew printProjectVersion -q).Trim()
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $env:GITHUB_ENV
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $env:GITHUB_ENV
+          Write-Host "Project Name: $PROJECT_NAME"
+          Write-Host "Project Version: $PROJECT_VERSION"
+
+      - name: Build with Gradle
+        run: ./gradlew shadowJar
+
+      - name: Read changelog
+        run: |
+          $CHANGELOG_CONTENT_RAW = Get-Content -Path ".github/changelogs/changelog.md" -Raw
+          $WARNING = ""
+          if ($env:PROJECT_VERSION -like "*a") {
+              $WARNING = "IMPORTANT: This is an alpha build. There might be bugs."
+          } elseif ($env:PROJECT_VERSION -like "*b") {
+              $WARNING = "IMPORTANT: This is a beta build. There might be bugs."
+          }
+          
+          $FINAL_CHANGELOG = "$CHANGELOG_CONTENT_RAW`n`n$WARNING"
+          
+          # Multiline Environment Variable für GITHUB_ENV
+          $DELIMITER = "EOF_CHANGELOG_$(Get-Random)"
+          echo "CHANGELOG_CONTENT<<$DELIMITER" >> $env:GITHUB_ENV
+          echo "$FINAL_CHANGELOG" >> $env:GITHUB_ENV
+          echo "$DELIMITER" >> $env:GITHUB_ENV
+          Write-Host "Changelog content prepared."
+
+      - name: Check if Release Exists
+        if: ${{ matrix.java == '21' }}
+        id: check_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $headers = @{
+              "Authorization" = "token $env:GITHUB_TOKEN"
+              "Accept" = "application/vnd.github.v3+json"
+          }
+          $tagName = $env:PROJECT_VERSION
+          $repo = $env:GITHUB_REPOSITORY
+          
+          Write-Host "Checking for existing release with tag: $tagName"
+          $releaseInfo = try {
+              Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/tags/$tagName" -Headers $headers -Method Get -ErrorAction Stop
+          } catch {
+              if ($_.Exception.Response -and $_.Exception.Response.StatusCode -eq 404) {
+                  Write-Host "Release with tag $tagName not found. No need to delete."
+                  $null
+              } else {
+                  Write-Error "Error checking release: $($_.Exception.Message)"
+                  # exit 1
+              }
+          }
+          
+          if ($releaseInfo -and $releaseInfo.tag_name -eq $tagName) {
+              Write-Host "Release $tagName already exists (ID: $($releaseInfo.id)). Deleting..."
+              $releaseId = $releaseInfo.id
+              try {
+                  Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/$releaseId" -Headers $headers -Method Delete -ErrorAction Stop
+                  Write-Host "Release $tagName deleted successfully."
+              } catch {
+                  Write-Error "Error deleting release: $($_.Exception.Message)"
+                  # exit 1
+              }
+          }
+
+      - name: Create Release
+        if: ${{ matrix.java == '21' }}
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.PROJECT_VERSION }}
+          release_name: ${{ env.PROJECT_NAME }} - v${{ env.PROJECT_VERSION }}
+          body: ${{ env.CHANGELOG_CONTENT }}
+          draft: false
+          prerelease: ${{ endsWith(env.PROJECT_VERSION, 'a') || endsWith(env.PROJECT_VERSION, 'b') }}
+
+      - name: Upload JAR file
+        if: ${{ matrix.java == '21' }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/libs/${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}-all.jar
+          asset_name: ${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}.jar
+          asset_content_type: application/java-archive
+
+      - name: Stop Gradle Daemon
+        if: always()
+        run: ./gradlew --stop
