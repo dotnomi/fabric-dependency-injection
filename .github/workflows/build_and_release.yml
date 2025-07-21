@@ -46,8 +46,8 @@ jobs:
 
       - name: Extract version
         run: |
-          PROJECT_NAME=$(./gradlew printProjectName -q | tr -d '\r' | xargs)
-          PROJECT_VERSION=$(./gradlew printProjectVersion -q | tr -d '\r' | xargs)
+          PROJECT_NAME=$(./gradlew printProjectName -q | tail -n 1 | tr -d '\r' | xargs)
+          PROJECT_VERSION=$(./gradlew printProjectVersion -q | tail -n 1 | tr -d '\r' | xargs)
           echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
           echo "PROJECT_VERSION=${PROJECT_VERSION}" >> $GITHUB_ENV
           echo "Project Name: $PROJECT_NAME"
