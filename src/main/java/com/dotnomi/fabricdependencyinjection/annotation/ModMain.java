@@ -1,6 +1,6 @@
-package com.dotnomi.fdi.annotation;
+package com.dotnomi.fabricdependencyinjection.annotation;
 
-import com.dotnomi.fdi.ModInjector;
+import com.dotnomi.fabricdependencyinjection.ModInjector;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

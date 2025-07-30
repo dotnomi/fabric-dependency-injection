@@ -1,10 +1,11 @@
-package com.dotnomi.fdi.processor;
+package com.dotnomi.fabricdependencyinjection.processor;
 
-import com.dotnomi.fdi.annotation.ModMain;
+import com.dotnomi.fabricdependencyinjection.annotation.ModMain;
 import com.google.auto.service.AutoService;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Messager;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -21,12 +22,20 @@ import java.util.Set;
  * exists in the compiled sources.
  * If more than one is found, the build will fail with an error.
  */
-@SupportedAnnotationTypes("com.dotnomi.ddi.annotation.ModMain")
+@SupportedAnnotationTypes("com.dotnomi.fabricdependencyinjection.annotation.ModMain")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public final class ModMainProcessor extends AbstractProcessor {
   private static final Set<String> foundModMainClasses = new HashSet<>();
   private static boolean errorReportedInThisCompilation = false;
+
+  private Messager messager;
+
+  @Override
+  public synchronized void init(ProcessingEnvironment processingEnv) {
+    super.init(processingEnv);
+    this.messager = processingEnv.getMessager();
+  }
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -35,7 +44,6 @@ public final class ModMainProcessor extends AbstractProcessor {
     }
 
     Set<? extends Element> currentRoundAnnotatedElements = roundEnv.getElementsAnnotatedWith(ModMain.class);
-    Messager messager = this.processingEnv.getMessager();
 
     for (Element annotatedElement : currentRoundAnnotatedElements) {
       String className = ((TypeElement) annotatedElement).getQualifiedName().toString();
