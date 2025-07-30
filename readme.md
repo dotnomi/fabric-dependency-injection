@@ -275,4 +275,4 @@ The framework throws specific exceptions to clearly identify configuration and r
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](#license) file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/dotnomi/fabric-dependency-injection?tab=GPL-3.0-1-ov-file) file for details.
