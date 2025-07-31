@@ -209,7 +209,6 @@ import com.mymod.manager.PlayerManager;
 import net.fabricmc.api.ModInitializer;
 
 @ModMain
-@ModScoped // The main class can also be a managed component
 public class MyMod implements ModInitializer {
 
     public static final String MOD_ID = "mymod";
