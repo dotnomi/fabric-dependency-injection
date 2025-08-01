@@ -2,9 +2,9 @@ name: Build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+#  push:
+#    branches:
+#      - main
   pull_request:
     branches:
       - main
@@ -47,6 +47,9 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
+      - name: Test with Gradle
+        run: ./gradlew test
 
       - name: Build with Gradle
         run: ./gradlew build
