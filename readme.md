@@ -125,16 +125,11 @@ Add the dependencies to your `build.gradle` file. You need the framework itself 
 
 ```groovy
 repositories {
-    // Add the repository where your framework is hosted
-    // e.g., maven { url 'https://jitpack.io' }
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    // Replace this with the correct notation for your library
-    implementation 'com.dotnomi:fabric-dependency-injection:1.0.0'
-
-    // The framework requires 'org.reflections'
-    implementation 'org.reflections:reflections:0.10.2'
+    implementation 'com.github.dotnomi:fabric-dependency-injection:1.0.0'
 }
 ```
 
@@ -218,7 +213,6 @@ public class MyMod implements ModInitializer {
     @Override
     public void onInitialize() {
         // Initializes the container for this mod and scans for components.
-        // This also instantiates PlayerManager and injects it into the field above.
         ModInjector.initialize(MOD_ID, MyMod.class);
         
         // In the main class you can't use field injection or constructor injection.
