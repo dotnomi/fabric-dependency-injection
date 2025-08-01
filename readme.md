@@ -4,7 +4,7 @@
 []([https://opensource.org/licenses/gpl-3-0)
 [![](https://jitpack.io/v/dotnomi/fabric-dependency-injection.svg)](https://jitpack.io/#dotnomi/fabric-dependency-injection)
 
-A simple, lightweight, and thread-safe dependency injection (DI) framework designed specifically for Fabric mods. It enables clean code organization and decoupled components by automatically managing object instances and their dependencies.
+A simple, lightweight, and thread-safe dependency injection (DI) framework designed specifically for Fabric mods. (Works for any modloaders) It enables clean code organization and decoupled components by automatically managing object instances and their dependencies.
 
 ## Table of Contents
 
