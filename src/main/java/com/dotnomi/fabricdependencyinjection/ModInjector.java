@@ -52,12 +52,8 @@ public final class ModInjector {
    * @throws InstanceCreationException if an unexpected error occurs during the instantiation of the class,
    *         for example, due to a problem with reflection.
    */
-  public static void initialize(String modId, Class<?> mainClass) throws IllegalStateException, IllegalArgumentException {
-    modContainers.computeIfAbsent(modId, key -> {
-      var modContainer = new ModContainer(key);
-      modContainer.initialize(mainClass);
-      return modContainer;
-    });
+  public static void initialize(String modId, Class<?> mainClass) throws ModInjectorException {
+    modContainers.computeIfAbsent(modId, ModContainer::new).initialize(mainClass);
   }
 
   /**

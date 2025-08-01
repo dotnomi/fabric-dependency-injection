@@ -1,4 +1,4 @@
-package com.dotnomi.fabricdependencyinjection.testclasses;
+package com.dotnomi.fabricdependencyinjection.testclasses.inheritance;
 
 import com.dotnomi.fabricdependencyinjection.annotation.ModScoped;
 
