@@ -3,6 +3,7 @@ package com.dotnomi.fabricdependencyinjection;
 import com.dotnomi.fabricdependencyinjection.annotation.ModInject;
 import com.dotnomi.fabricdependencyinjection.annotation.ModMain;
 import com.dotnomi.fabricdependencyinjection.annotation.ModScoped;
+import com.dotnomi.fabricdependencyinjection.annotation.PostConstruct;
 import com.dotnomi.fabricdependencyinjection.exception.CircularDependencyException;
 import com.dotnomi.fabricdependencyinjection.exception.ContainerAlreadyInitializedException;
 import com.dotnomi.fabricdependencyinjection.exception.ContainerNotInitializedException;
@@ -198,6 +199,8 @@ public final class ModInjector {
         logger.debug("[{}] Successfully instantiated [{}]. Proceeding with field injection.", modId, targetClass.getName());
 
         injectFields(newInstance, targetClass);
+        invokePostConstructMethod(newInstance);
+
         return newInstance;
       } catch (Exception exception) {
         if (exception instanceof ModInjectorException modInjectorException) {
@@ -223,6 +226,31 @@ public final class ModInjector {
             var dependency = getInstanceOf(field.getType());
             field.set(instance, dependency);
             logger.debug("[{}] Injected dependency of type [{}] into field [{}].", modId, dependency.getClass().getName(), field.getName());
+          }
+        }
+        currentClass = currentClass.getSuperclass();
+      }
+    }
+
+    private void invokePostConstructMethod(Object instance) {
+      var currentClass = instance.getClass();
+      while (currentClass != null && currentClass != Object.class) {
+        for (var method : currentClass.getDeclaredMethods()) {
+          if (method.isAnnotationPresent(PostConstruct.class)) {
+            logger.debug("[{}] Found @PostConstruct on method [{}] in class [{}].", modId, method.getName(), instance.getClass().getName());
+
+            if (method.getParameterCount() != 0) {
+              throw new IllegalStateException("@PostConstruct method '" + method.getName() + "' must not have any parameters.");
+            }
+
+            try {
+              method.setAccessible(true);
+              method.invoke(instance);
+            } catch (Exception exception) {
+              throw new InstanceCreationException("Failed to invoke @PostConstruct method '" + method.getName() + "'", exception);
+            }
+
+            return;
           }
         }
         currentClass = currentClass.getSuperclass();
