@@ -1,0 +1,18 @@
+package com.dotnomi.fabricdependencyinjection.java.testclasses.postconstruct.success;
+
+import com.dotnomi.fabricdependencyinjection.annotation.ModScoped;
+import com.dotnomi.fabricdependencyinjection.annotation.PostConstruct;
+
+@ModScoped
+public class PostConstructService {
+  private boolean initialized;
+
+  @PostConstruct
+  private void initialize() {
+    this.initialized = true;
+  }
+
+  public boolean isInitialized() {
+    return this.initialized;
+  }
+}
