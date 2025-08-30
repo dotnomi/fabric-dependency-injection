@@ -1,0 +1,3 @@
+package com.dotnomi.fabricdependencyinjection.kotlin.testclasses.ambiguous
+
+interface AmbiguousService
