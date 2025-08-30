@@ -3,6 +3,7 @@ plugins {
     id("maven-publish")
     id("co.uzzu.dotenv.gradle") version("$dotenv_version")
     id("com.github.johnrengelman.shadow") version("$shadow_version")
+    id("org.jetbrains.kotlin.jvm")
 }
 
 group = project.library_group
@@ -16,7 +17,9 @@ dependencies {
     compileOnly("org.slf4j:slf4j-api:$slf4j_version")
     annotationProcessor("com.google.auto.service:auto-service:$google_auto_service_version")
     compileOnly("com.google.auto.service:auto-service:$google_auto_service_version")
-    implementation ("org.reflections:reflections:$reflections_version")
+    implementation("org.reflections:reflections:$java_reflections_version")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_reflections_version")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     testImplementation platform("org.junit:junit-bom:$junit_version")
     testImplementation("org.junit.jupiter:junit-jupiter")
@@ -65,3 +68,7 @@ publishing {
 
 tasks.register("printProjectName") { doLast { println project.name } }
 tasks.register("printProjectVersion") { doLast { println project.version } }
+
+kotlin {
+    jvmToolchain(21)
+}

@@ -14,7 +14,7 @@ public final class CircularDependencyFormatter {
    */
   public static String format(List<Class<?>> path) {
     if (path == null || path.isEmpty()) {
-      return "Circular dependency detected with an empty path.";
+      return "Circular dependency detected! The classes depend on each other in an endless loop. Path: undefined";
     }
 
     var lastClass = path.getLast();
@@ -26,7 +26,7 @@ public final class CircularDependencyFormatter {
     var cycleNames = allNames.subList(cycleStartIndex, allNames.size());
 
     var pathSummary = String.join(" -> ", allNames);
-    var messageBuilder = new StringBuilder("Circular dependency detected: ").append(pathSummary).append("\n\n\t");
+    var messageBuilder = new StringBuilder(String.format("Circular dependency detected! The classes depend on each other in an endless loop. Path: %s", pathSummary)).append("\n\n\t");
 
     var biggestNameLength = allNames.stream().mapToInt(String::length).max().orElse(0);
     var rowLength = Math.max((biggestNameLength / 3) + 4, 5);
